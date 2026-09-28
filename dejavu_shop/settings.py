@@ -38,8 +38,9 @@ INSTALLED_APPS = [
     'accounts',
     'rest_framework',
     'settings',
-    "products.apps.ProductsConfig",
-    "orders.apps.OrdersConfig",
+    'products.apps.ProductsConfig',
+    'orders.apps.OrdersConfig',
+    'rest_framework_simplejwt',
 ]
 AUTH_USER_MODEL = "accounts.User"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -131,5 +132,6 @@ MAILERS = {
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 }
