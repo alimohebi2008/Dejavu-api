@@ -10,7 +10,6 @@ from .serializers import (
     OrderSerializer,
 )
 
-
 class CartViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     serializer_class = CartSerializer
     permission_classes = [IsAuthenticated]
