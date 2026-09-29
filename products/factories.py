@@ -1,18 +1,27 @@
 import random
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 
 import factory
+from django.utils import timezone
 from factory import Faker
 from factory.django import DjangoModelFactory
 from faker import Faker as FakerLib
 
-from .models import Category, Product, ProductColor, ProductSize
+from .models import (
+    Category,
+    Product,
+    ProductColor,
+    ProductDiscount,
+    ProductSize,
+)
 
 # python manage.py generate_to_db products.CategoryFactory -q 8
 # python manage.py generate_to_db products.ProductSizeFactory -q 6
 # python manage.py generate_to_db products.ProductColorFactory -q 10
 # python manage.py generate_to_db products.ProductFactory -q 40
+# python manage.py generate_to_db products.ProductDiscountFactory -q 15
 
 fake = FakerLib('fa_IR')
 
@@ -26,7 +35,7 @@ SIZES = [
     (300, 400),
 ]
 
-# (عنوان، کد رنگ)
+
 COLORS = [
     ('قرمز', '#E53935'),
     ('آبی', '#1E88E5'),
@@ -130,3 +139,54 @@ class ProductFactory(DjangoModelFactory):
             all_colors = list(ProductColor.objects.all())
             selected = random.sample(all_colors, random.randint(1, min(3, len(all_colors))))
             self.colors.add(*selected)
+
+
+# ---------- discount ----------
+
+def random_product_without_discount():
+    # ProductDiscount با Product رابطه‌ی OneToOne داره
+    product = Product.objects.filter(discount__isnull=True).order_by('?').first()
+    return product or ProductFactory()
+
+
+def discount_window(state):
+    now = timezone.now()
+    if state == 'expired':
+        end = now - timedelta(days=random.randint(1, 10))
+        start = end - timedelta(days=random.randint(5, 20))
+    elif state == 'upcoming':
+        start = now + timedelta(days=random.randint(1, 10))
+        end = start + timedelta(days=random.randint(5, 20))
+    else:  # active
+        start = now - timedelta(days=random.randint(1, 10))
+        end = now + timedelta(days=random.randint(1, 20))
+    return start, end
+
+
+def discount_value(discount_type, price):
+    if discount_type == ProductDiscount.DiscountType.PERCENTAGE:
+        return Decimal(random.choice([5, 10, 15, 20, 25, 30, 40, 50]))
+
+    # مبلغ ثابت: بین ۵٪ تا ۵۰٪ قیمت، گرد‌شده به هزار (هیچ‌وقت بیشتر از قیمت نمی‌شه)
+    amount = int(price * Decimal(random.uniform(0.05, 0.5)))
+    return Decimal(max(amount // 1000 * 1000, 1000))
+
+
+class ProductDiscountFactory(DjangoModelFactory):
+    class Meta:
+        model = ProductDiscount
+
+    class Params:
+        state = factory.LazyFunction(
+            lambda: random.choices(['active', 'expired', 'upcoming'], weights=[70, 15, 15])[0]
+        )
+        window = factory.LazyAttribute(lambda o: discount_window(o.state))
+
+    product = factory.LazyFunction(random_product_without_discount)
+    discount_type = factory.LazyFunction(
+        lambda: random.choice(ProductDiscount.DiscountType.values)
+    )
+    value = factory.LazyAttribute(lambda o: discount_value(o.discount_type, o.product.price))
+    start_at = factory.LazyAttribute(lambda o: o.window[0])
+    end_at = factory.LazyAttribute(lambda o: o.window[1])
+    is_active = factory.LazyFunction(lambda: random.random() < 0.9)

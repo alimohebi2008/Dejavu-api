@@ -5,6 +5,7 @@ from .views import (
     ProductSizeViewSet,
     ProductViewSet,
     ProductColorViewSet,
+    ProductDiscountViewSet,
 )
 
 router = DefaultRouter()
@@ -12,7 +13,7 @@ router = DefaultRouter()
 router.register(
     "categories",
     CategoryViewSet,
-    basename="category",
+    basename="categories",
 )
 
 router.register(
@@ -24,13 +25,20 @@ router.register(
 router.register(
     "products",
     ProductViewSet,
-    basename="product",
+    basename="products",
 )
 
 router.register(
-    "product_color",
+    "product_colors",
     ProductColorViewSet,
-    basename="product_color",
+    basename="product_colors",
 )
+router.register(
+    "product_discounts",
+    ProductDiscountViewSet,
+    basename="product_discounts",
+)
+
+
 
 urlpatterns = router.urls
