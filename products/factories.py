@@ -7,10 +7,11 @@ from factory import Faker
 from factory.django import DjangoModelFactory
 from faker import Faker as FakerLib
 
-from .models import Category, Product, ProductSize
+from .models import Category, Product, ProductColor, ProductSize
 
 # python manage.py generate_to_db products.CategoryFactory -q 8
 # python manage.py generate_to_db products.ProductSizeFactory -q 6
+# python manage.py generate_to_db products.ProductColorFactory -q 10
 # python manage.py generate_to_db products.ProductFactory -q 40
 
 fake = FakerLib('fa_IR')
@@ -25,6 +26,20 @@ SIZES = [
     (300, 400),
 ]
 
+# (عنوان، کد رنگ)
+COLORS = [
+    ('قرمز', '#E53935'),
+    ('آبی', '#1E88E5'),
+    ('سبز', '#43A047'),
+    ('زرد', '#FDD835'),
+    ('مشکی', '#212121'),
+    ('سفید', '#FFFFFF'),
+    ('طوسی', '#9E9E9E'),
+    ('قهوه‌ای', '#6D4C41'),
+    ('کرمی', '#F5F5DC'),
+    ('سرمه‌ای', '#1A237E'),
+]
+
 
 class ProductSizeFactory(DjangoModelFactory):
     class Meta:
@@ -37,6 +52,19 @@ class ProductSizeFactory(DjangoModelFactory):
     title = factory.LazyAttribute(lambda o: f'{o.dims[0]}x{o.dims[1]}')
     width = factory.LazyAttribute(lambda o: Decimal(o.dims[0]))
     length = factory.LazyAttribute(lambda o: Decimal(o.dims[1]))
+    is_active = True
+
+
+class ProductColorFactory(DjangoModelFactory):
+    class Meta:
+        model = ProductColor
+        django_get_or_create = ('title',)
+
+    class Params:
+        color = factory.Iterator(COLORS)
+
+    title = factory.LazyAttribute(lambda o: o.color[0])
+    hex_code = factory.LazyAttribute(lambda o: o.color[1])
     is_active = True
 
 
@@ -87,3 +115,18 @@ class ProductFactory(DjangoModelFactory):
             all_sizes = list(ProductSize.objects.all())
             selected = random.sample(all_sizes, random.randint(1, min(3, len(all_sizes))))
             self.sizes.add(*selected)
+
+    @factory.post_generation
+    def colors(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            self.colors.add(*extracted)
+        else:
+            if ProductColor.objects.count() < len(COLORS):
+                ProductColorFactory.create_batch(len(COLORS))
+
+            all_colors = list(ProductColor.objects.all())
+            selected = random.sample(all_colors, random.randint(1, min(3, len(all_colors))))
+            self.colors.add(*selected)

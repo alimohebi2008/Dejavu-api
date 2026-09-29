@@ -1,10 +1,11 @@
 from rest_framework import viewsets
 
-from .models import Category, Product, ProductSize
+from .models import Category, Product, ProductSize,ProductColor
 from .serializers import (
     CategorySerializer,
     ProductSerializer,
     ProductSizeSerializer,
+    ProductColorSerializer,
 )
 
 
@@ -21,3 +22,7 @@ class ProductSizeViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
+
+class ProductColorViewSet(viewsets.ModelViewSet):
+    queryset = ProductColor.objects.all()
+    serializer_class = ProductColorSerializer

@@ -71,6 +71,26 @@ class Category(models.Model):
     def __str__(self):
         return self.title
 
+class ProductColor(models.Model):
+    title = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="عنوان",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="فعال",
+    )
+    hex_code = models.CharField(
+        max_length=7,
+        verbose_name="کد رنگ",
+    )
+    class Meta:
+        verbose_name = "رنگ محصول"
+        verbose_name_plural = "رنگ های محصول"
+    def __str__(self):
+        return self.title
+
 
 class Product(models.Model):
     category = models.ForeignKey(
@@ -124,6 +144,12 @@ class Product(models.Model):
         auto_now=True,
         verbose_name="تاریخ بروزرسانی",
     )
+    colors = models.ManyToManyField(
+        ProductColor,
+        related_name="products",
+        blank=True,
+        verbose_name="رنگ ها ",
+    )
 
     class Meta:
         verbose_name = "محصول"
@@ -131,3 +157,5 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title
+
+
