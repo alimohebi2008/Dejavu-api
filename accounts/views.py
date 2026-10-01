@@ -1,6 +1,9 @@
 from django.shortcuts import render
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet,ReadOnlyModelViewSet
 from rest_framework import viewsets
+
+from settings.filters import UserFilter
 from .models import User, Role
 from .serializers import UserSerializer, RoleSerializer
 from products.models import Product,Category
@@ -16,6 +19,8 @@ class RoleViewSet(ModelViewSet):
 class UserViewSet(ModelViewSet):
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = UserFilter
 
 
 class DashboardView(viewsets.ReadOnlyModelViewSet):

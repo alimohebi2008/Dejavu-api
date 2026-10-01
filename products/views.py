@@ -1,5 +1,7 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 
+from settings.filters import ProductFilter, CategoryFilter
 from .models import Category, Product, ProductSize, ProductColor, ProductDiscount
 from .serializers import (
     CategorySerializer,
@@ -13,6 +15,8 @@ from .serializers import (
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('-created_at')
     serializer_class = CategorySerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CategoryFilter
 
 
 class ProductSizeViewSet(viewsets.ModelViewSet):
@@ -23,6 +27,8 @@ class ProductSizeViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
     serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ProductFilter
 
 
 class ProductColorViewSet(viewsets.ModelViewSet):
