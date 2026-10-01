@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import F, Sum
-
+from django.conf import settings
 from products.models import Product
 
 
@@ -164,3 +164,60 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product.title} × {self.quantity}"
+
+
+class Wishlist(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="wishlist",
+        verbose_name="کاربر",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاریخ ایجاد",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاریخ بروزرسانی",
+    )
+
+    class Meta:
+        verbose_name = "لیست علاقه‌مندی"
+        verbose_name_plural = "لیست‌های علاقه‌مندی"
+
+    def __str__(self):
+        return f"Wishlist - {self.user.username}"
+
+
+class WishlistItem(models.Model):
+    wishlist = models.ForeignKey(
+        Wishlist,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name="لیست علاقه‌مندی",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="wishlist_items",
+        verbose_name="محصول",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاریخ افزودن",
+    )
+
+    class Meta:
+        verbose_name = "آیتم علاقه‌مندی"
+        verbose_name_plural = "آیتم‌های علاقه‌مندی"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["wishlist", "product"],
+                name="unique_wishlist_product",
+            ),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.wishlist.user.username} - {self.product.title}"

@@ -1,4 +1,8 @@
 from rest_framework import serializers
+from rest_framework import serializers
+
+from products.models import Product
+from .models import Wishlist, WishlistItem
 
 from .models import Cart, CartItem, Order, OrderItem
 
@@ -98,6 +102,45 @@ class OrderSerializer(serializers.ModelSerializer):
             "status",
             "total_price",
             "items",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class WishlistItemSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(is_active=True),
+    )
+
+    class Meta:
+        model = WishlistItem
+        fields = [
+            "id",
+            "product",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+        ]
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    items = WishlistItemSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = Wishlist
+        fields = [
+            "id",
+            "items",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
             "created_at",
             "updated_at",
         ]
