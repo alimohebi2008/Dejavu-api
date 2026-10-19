@@ -22,3 +22,5 @@ class UserSerializer(serializers.ModelSerializer):
             'is_active', 'role', 'role_detail', 'image', 'phone_number'
         ]
         read_only_fields = ['last_login', 'date_joined']
+
+ 
