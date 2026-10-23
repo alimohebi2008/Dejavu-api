@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.viewsets import ModelViewSet,ReadOnlyModelViewSet
+from rest_framework.viewsets import ModelViewSet
+from settings.permissions import IsAdminRole
 from rest_framework import viewsets
 
 from settings.filters import UserFilter
@@ -12,11 +13,13 @@ from rest_framework.response import Response
 
 
 class RoleViewSet(ModelViewSet):
+    permission_classes = [IsAdminRole]
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
 
 
 class UserViewSet(ModelViewSet):
+    permission_classes = [IsAdminRole]
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer
     filter_backends = [DjangoFilterBackend]
@@ -24,6 +27,7 @@ class UserViewSet(ModelViewSet):
 
 
 class DashboardView(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAdminRole]
 
     def list(self, request, *args, **kwargs):
         total_products = Product.objects.count()
@@ -57,4 +61,3 @@ class DashboardView(viewsets.ReadOnlyModelViewSet):
             "discounted_products": discounted_products,
             "latest_products": latest_products_data,
         })
-

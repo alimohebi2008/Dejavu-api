@@ -1,6 +1,6 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from settings.permissions import HasAnyRole
 from rest_framework.response import Response
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -19,7 +19,7 @@ from .serializers import (
 
 class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasAnyRole]
     http_method_names = ["get"]
 
     def get_queryset(self):
@@ -36,7 +36,7 @@ class CartViewSet(viewsets.ModelViewSet):
 
 class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasAnyRole]
 
     def get_queryset(self):
         return (
@@ -65,7 +65,7 @@ class CartItemViewSet(viewsets.ModelViewSet):
 
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasAnyRole]
 
     def get_queryset(self):
         return (
@@ -76,7 +76,7 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
 
 class OrderItemViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderItemSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasAnyRole]
 
     def get_queryset(self):
         return (
@@ -87,7 +87,7 @@ class OrderItemViewSet(viewsets.ReadOnlyModelViewSet):
 
 class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasAnyRole]
     http_method_names = ["get", "post", "delete"]
 
     def get_queryset(self):
@@ -163,7 +163,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
 class WishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [HasAnyRole]
     http_method_names = ["get", "post", "delete"]
 
     def get_queryset(self):
