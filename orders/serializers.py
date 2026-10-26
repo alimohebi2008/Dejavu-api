@@ -8,6 +8,9 @@ from .models import Cart, CartItem, Order, OrderItem
 
 
 class CartItemSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(is_active=True),
+    )
     product_title = serializers.CharField(
         source="product.title",
         read_only=True,
