@@ -1,9 +1,10 @@
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Role, RoleType
-from orders.models import Cart, CartItem, Order, Wishlist
+from orders.models import Cart, CartItem, Order, Wishlist, WishlistItem
 from products.models import Category, Product
 
 User = get_user_model()
@@ -31,6 +32,10 @@ class OrderRelatedPermissionTests(APITestCase):
             stock=5,
             is_active=False,
         )
+
+    def test_wishlist_models_are_registered_in_admin(self):
+        self.assertIn(Wishlist, admin.site._registry)
+        self.assertIn(WishlistItem, admin.site._registry)
 
     def test_user_role_can_access_own_cart(self):
         self.client.force_authenticate(user=self.user)
@@ -72,6 +77,79 @@ class OrderRelatedPermissionTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cannot_add_more_than_available_stock_to_cart(self):
+        product = Product.objects.create(
+            category=self.category,
+            title="Limited stock product",
+            slug="limited-stock-product",
+            description="Limited stock",
+            price="10.00",
+            stock=3,
+            is_active=True,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            "/api/orders/cart-items/",
+            {"product": product.pk, "quantity": 4},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            CartItem.objects.filter(
+                cart__user=self.user, product=product
+            ).exists()
+        )
+
+    def test_cannot_increase_cart_quantity_above_available_stock(self):
+        product = Product.objects.create(
+            category=self.category,
+            title="Limited stock product",
+            slug="limited-stock-product",
+            description="Limited stock",
+            price="10.00",
+            stock=3,
+            is_active=True,
+        )
+        cart = Cart.objects.create(user=self.user)
+        item = CartItem.objects.create(cart=cart, product=product, quantity=2)
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            f"/api/orders/cart-items/{item.pk}/",
+            {"quantity": 4},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        item.refresh_from_db()
+        self.assertEqual(item.quantity, 2)
+
+    def test_adding_existing_cart_product_cannot_exceed_available_stock(self):
+        product = Product.objects.create(
+            category=self.category,
+            title="Limited stock product",
+            slug="limited-stock-product",
+            description="Limited stock",
+            price="10.00",
+            stock=3,
+            is_active=True,
+        )
+        cart = Cart.objects.create(user=self.user)
+        item = CartItem.objects.create(cart=cart, product=product, quantity=2)
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            "/api/orders/cart-items/",
+            {"product": product.pk, "quantity": 2},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        item.refresh_from_db()
+        self.assertEqual(item.quantity, 2)
 
     def test_cannot_add_inactive_product_to_wishlist(self):
         self.client.force_authenticate(user=self.user)

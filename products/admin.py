@@ -58,5 +58,5 @@ class ProductAdmin(admin.ModelAdmin):
         "created_at",
     )
     readonly_fields = ("created_at", "updated_at")
-    filter_horizontal = ("sizes",)
+    filter_horizontal = ("sizes", "colors")
     prepopulated_fields = {"slug": ("title",)}

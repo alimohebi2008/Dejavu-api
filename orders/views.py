@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from settings.permissions import HasAnyRole
 from rest_framework.response import Response
@@ -65,6 +65,10 @@ class CartItemViewSet(viewsets.ModelViewSet):
         )
 
         if not created:
+            if item.quantity + quantity > product.stock:
+                raise serializers.ValidationError(
+                    {"quantity": ["Requested quantity exceeds available stock."]}
+                )
             item.quantity += quantity
             item.save(update_fields=["quantity", "updated_at"])
         serializer.instance = item

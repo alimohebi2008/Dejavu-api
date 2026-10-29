@@ -42,7 +42,20 @@ class CartItemSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        product = attrs.get("product")
+        product = attrs.get(
+            "product", self.instance.product if self.instance else None
+        )
+        quantity = attrs.get(
+            "quantity", self.instance.quantity if self.instance else None
+        )
+        if (
+            product is not None
+            and quantity is not None
+            and quantity > product.stock
+        ):
+            raise serializers.ValidationError(
+                {"quantity": ["Requested quantity exceeds available stock."]}
+            )
         if (
             self.instance is not None
             and product is not None

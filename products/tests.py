@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.test import SimpleTestCase, override_settings
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
@@ -7,6 +9,7 @@ from rest_framework.test import APITestCase
 from orders.models import Order, OrderItem
 
 from accounts.models import Role, RoleType
+from products.admin import ProductAdmin
 from products.models import Category, Product, ProductColor, ProductDiscount, ProductSize
 
 User = get_user_model()
@@ -173,3 +176,32 @@ class ProductPermissionTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertTrue(Product.objects.filter(pk=self.product.pk).exists())
         self.assertTrue(OrderItem.objects.filter(pk=order_item.pk).exists())
+
+
+class AdminAndCORSTests(SimpleTestCase):
+    def test_product_admin_has_horizontal_filters_for_sizes_and_colors(self):
+        self.assertEqual(
+            ProductAdmin.filter_horizontal,
+            ("sizes", "colors"),
+        )
+
+    @override_settings(CORS_ALLOWED_ORIGINS=["https://shop.example"])
+    def test_cors_allows_configured_origin(self):
+        response = self.client.options(
+            "/api/products/products/",
+            HTTP_ORIGIN="https://shop.example",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+        )
+        self.assertEqual(
+            response.headers.get("Access-Control-Allow-Origin"),
+            "https://shop.example",
+        )
+
+    @override_settings(CORS_ALLOWED_ORIGINS=["https://shop.example"])
+    def test_cors_rejects_unconfigured_origin(self):
+        response = self.client.options(
+            "/api/products/products/",
+            HTTP_ORIGIN="https://untrusted.example",
+            HTTP_ACCESS_CONTROL_REQUEST_METHOD="GET",
+        )
+        self.assertNotIn("Access-Control-Allow-Origin", response.headers)
