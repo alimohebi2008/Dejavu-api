@@ -37,6 +37,16 @@ class OrderRelatedPermissionTests(APITestCase):
         response = self.client.get("/api/orders/cart/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_cart_detail_url_does_not_ignore_cart_id(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/orders/cart/999/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_wishlist_detail_url_does_not_ignore_wishlist_id(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/orders/wishlist/999/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_authenticated_user_without_role_is_denied_cart_access(self):
         self.client.force_authenticate(user=self.roleless_user)
         response = self.client.get("/api/orders/cart/")

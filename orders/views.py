@@ -32,6 +32,14 @@ class CartViewSet(viewsets.ModelViewSet):
         )
         return cart
 
+    def retrieve(self, request, *args, **kwargs):
+        cart = get_object_or_404(
+            self.get_queryset(),
+            pk=kwargs[self.lookup_field],
+        )
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data)
+
 
 class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
@@ -101,6 +109,14 @@ class WishlistViewSet(viewsets.ModelViewSet):
             user=self.request.user
         )
         return wishlist
+
+    def retrieve(self, request, *args, **kwargs):
+        wishlist = get_object_or_404(
+            self.get_queryset(),
+            pk=kwargs[self.lookup_field],
+        )
+        serializer = self.get_serializer(wishlist)
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         return Response(
