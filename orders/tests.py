@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import Role, RoleType
-from orders.models import Order, Wishlist
+from orders.models import Cart, CartItem, Order, Wishlist
 from products.models import Category, Product
 
 User = get_user_model()
@@ -62,6 +62,45 @@ class OrderRelatedPermissionTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cannot_change_cart_item_to_product_already_in_cart(self):
+        active_product = Product.objects.create(
+            category=self.category,
+            title="Active product",
+            slug="active-product",
+            description="Available for sale",
+            price="15.00",
+            stock=5,
+            is_active=True,
+        )
+        another_product = Product.objects.create(
+            category=self.category,
+            title="Another product",
+            slug="another-product",
+            description="Also available",
+            price="20.00",
+            stock=5,
+            is_active=True,
+        )
+        cart = Cart.objects.create(user=self.user)
+        first_item = CartItem.objects.create(
+            cart=cart, product=active_product, quantity=1
+        )
+        second_item = CartItem.objects.create(
+            cart=cart, product=another_product, quantity=1
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            f"/api/orders/cart-items/{first_item.pk}/",
+            {"product": another_product.pk},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        first_item.refresh_from_db()
+        self.assertEqual(first_item.product_id, active_product.pk)
+        self.assertTrue(CartItem.objects.filter(pk=second_item.pk).exists())
 
     def test_detail_delete_does_not_delete_the_users_entire_wishlist(self):
         self.client.force_authenticate(user=self.user)

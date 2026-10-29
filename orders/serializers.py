@@ -41,6 +41,26 @@ class CartItemSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        product = attrs.get("product")
+        if (
+            self.instance is not None
+            and product is not None
+            and product.pk != self.instance.product_id
+        ):
+            request = self.context.get("request")
+            if request is not None:
+                duplicate = CartItem.objects.filter(
+                    cart__user=request.user,
+                    product=product,
+                ).exclude(pk=self.instance.pk).exists()
+                if duplicate:
+                    raise serializers.ValidationError(
+                        {"product": "This product is already in your cart."}
+                    )
+
+        return attrs
+
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
