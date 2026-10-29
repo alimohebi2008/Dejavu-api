@@ -63,6 +63,19 @@ class OrderRelatedPermissionTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_cannot_add_inactive_product_to_wishlist(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            "/api/orders/wishlist/",
+            {"product": self.inactive_product.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            Wishlist.objects.filter(user=self.user, items__product=self.inactive_product).exists()
+        )
+
     def test_cannot_change_cart_item_to_product_already_in_cart(self):
         active_product = Product.objects.create(
             category=self.category,

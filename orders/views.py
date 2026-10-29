@@ -133,8 +133,13 @@ class WishlistViewSet(viewsets.ModelViewSet):
         product = get_object_or_404(
             Product,
             id=product_id,
-            is_active=True,
         )
+
+        if not product.is_active:
+            return Response(
+                {"product": ["This product is not available."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         wishlist = self.get_object()
 
