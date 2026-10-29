@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
+from orders.models import Order, OrderItem
 
 from accounts.models import Role, RoleType
 from products.models import Category, Product, ProductColor, ProductDiscount, ProductSize
@@ -150,3 +151,25 @@ class ProductPermissionTests(APITestCase):
         )
         response = self.client.get("/api/products/product_discounts/")
         self.assertNotIn(discount.id, [item["id"] for item in response.data])
+
+    def test_cannot_delete_category_with_products(self):
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.delete(f"/api/products/categories/{self.category.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertTrue(Category.objects.filter(pk=self.category.pk).exists())
+        self.assertTrue(Product.objects.filter(pk=self.product.pk).exists())
+
+    def test_cannot_delete_product_with_order_items(self):
+        order = Order.objects.create(user=self.regular_user, total_price="25.00")
+        order_item = OrderItem.objects.create(
+            order=order, product=self.product, quantity=1, price="25.00"
+        )
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.delete(f"/api/products/products/{self.product.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertTrue(Product.objects.filter(pk=self.product.pk).exists())
+        self.assertTrue(OrderItem.objects.filter(pk=order_item.pk).exists())

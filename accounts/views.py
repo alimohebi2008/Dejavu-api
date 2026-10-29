@@ -10,6 +10,7 @@ from .serializers import UserSerializer, RoleSerializer
 from products.models import Product,Category
 from django.db.models import Sum
 from rest_framework.response import Response
+from settings.mixins import ProtectedDeleteErrorMixin
 
 
 class RoleViewSet(ModelViewSet):
@@ -18,7 +19,7 @@ class RoleViewSet(ModelViewSet):
     serializer_class = RoleSerializer
 
 
-class UserViewSet(ModelViewSet):
+class UserViewSet(ProtectedDeleteErrorMixin, ModelViewSet):
     permission_classes = [IsAdminRole]
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = UserSerializer

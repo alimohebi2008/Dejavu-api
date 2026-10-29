@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
+from orders.models import Order
 
 from .models import Role, RoleType
 
@@ -58,3 +59,13 @@ class AccountPermissionTests(APITestCase):
         self.client.force_authenticate(user=self.admin_user)
         response = self.client.get("/api/accounts/dashboard/1/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_cannot_delete_user_with_orders(self):
+        order = Order.objects.create(user=self.regular_user, total_price="10.00")
+        self.client.force_authenticate(user=self.admin_user)
+
+        response = self.client.delete(f"/api/accounts/users/{self.regular_user.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertTrue(User.objects.filter(pk=self.regular_user.pk).exists())
+        self.assertTrue(Order.objects.filter(pk=order.pk).exists())

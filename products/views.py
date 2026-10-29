@@ -5,6 +5,7 @@ from rest_framework import viewsets
 from accounts.models import RoleType
 from settings.filters import CategoryFilter, ProductFilter
 from settings.permissions import IsAdminRoleOrReadOnly
+from settings.mixins import ProtectedDeleteErrorMixin
 
 from .models import Category, Product, ProductColor, ProductDiscount, ProductSize
 from .serializers import (
@@ -23,7 +24,7 @@ def _is_admin_user(user):
     )
 
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(ProtectedDeleteErrorMixin, viewsets.ModelViewSet):
     permission_classes = [IsAdminRoleOrReadOnly]
     serializer_class = CategorySerializer
     filter_backends = [DjangoFilterBackend]
@@ -47,7 +48,7 @@ class ProductSizeViewSet(viewsets.ModelViewSet):
         return queryset
 
 
-class ProductViewSet(viewsets.ModelViewSet):
+class ProductViewSet(ProtectedDeleteErrorMixin, viewsets.ModelViewSet):
     permission_classes = [IsAdminRoleOrReadOnly]
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend]
