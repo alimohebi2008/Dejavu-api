@@ -26,7 +26,7 @@ class UserViewSet(ModelViewSet):
     filterset_class = UserFilter
 
 
-class DashboardView(viewsets.ReadOnlyModelViewSet):
+class DashboardView(viewsets.GenericViewSet):
     permission_classes = [IsAdminRole]
 
     def list(self, request, *args, **kwargs):

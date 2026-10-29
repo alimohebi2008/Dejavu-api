@@ -53,3 +53,8 @@ class AccountPermissionTests(APITestCase):
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get("/api/accounts/dashboard/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_dashboard_detail_route_is_not_exposed(self):
+        self.client.force_authenticate(user=self.admin_user)
+        response = self.client.get("/api/accounts/dashboard/1/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
