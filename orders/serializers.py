@@ -8,6 +8,9 @@ from .models import Cart, CartItem, Order, OrderItem
 
 
 class CartItemSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.filter(is_active=True),
+    )
     product_title = serializers.CharField(
         source="product.title",
         read_only=True,
@@ -37,6 +40,39 @@ class CartItemSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def validate(self, attrs):
+        product = attrs.get(
+            "product", self.instance.product if self.instance else None
+        )
+        quantity = attrs.get(
+            "quantity", self.instance.quantity if self.instance else None
+        )
+        if (
+            product is not None
+            and quantity is not None
+            and quantity > product.stock
+        ):
+            raise serializers.ValidationError(
+                {"quantity": ["Requested quantity exceeds available stock."]}
+            )
+        if (
+            self.instance is not None
+            and product is not None
+            and product.pk != self.instance.product_id
+        ):
+            request = self.context.get("request")
+            if request is not None:
+                duplicate = CartItem.objects.filter(
+                    cart__user=request.user,
+                    product=product,
+                ).exclude(pk=self.instance.pk).exists()
+                if duplicate:
+                    raise serializers.ValidationError(
+                        {"product": "This product is already in your cart."}
+                    )
+
+        return attrs
 
 
 class CartSerializer(serializers.ModelSerializer):

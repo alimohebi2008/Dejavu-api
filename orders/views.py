@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from settings.permissions import HasAnyRole
 from rest_framework.response import Response
@@ -13,7 +13,6 @@ from .serializers import (
     OrderItemSerializer,
     OrderSerializer,
     WishlistSerializer,
-    WishlistItemSerializer
 )
 
 
@@ -32,6 +31,14 @@ class CartViewSet(viewsets.ModelViewSet):
             user=self.request.user
         )
         return cart
+
+    def retrieve(self, request, *args, **kwargs):
+        cart = get_object_or_404(
+            self.get_queryset(),
+            pk=kwargs[self.lookup_field],
+        )
+        serializer = self.get_serializer(cart)
+        return Response(serializer.data)
 
 
 class CartItemViewSet(viewsets.ModelViewSet):
@@ -58,6 +65,10 @@ class CartItemViewSet(viewsets.ModelViewSet):
         )
 
         if not created:
+            if item.quantity + quantity > product.stock:
+                raise serializers.ValidationError(
+                    {"quantity": ["Requested quantity exceeds available stock."]}
+                )
             item.quantity += quantity
             item.save(update_fields=["quantity", "updated_at"])
         serializer.instance = item
@@ -103,82 +114,19 @@ class WishlistViewSet(viewsets.ModelViewSet):
         )
         return wishlist
 
-    @action(
-        detail=False,
-        methods=["post"],
-        url_path="add",
-    )
-    def add(self, request):
-        product_id = request.data.get("product")
-
-        if not product_id:
-            return Response(
-                {"detail": "شناسه محصول الزامی است."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        product = get_object_or_404(
-            Product,
-            id=product_id,
-            is_active=True,
+    def retrieve(self, request, *args, **kwargs):
+        wishlist = get_object_or_404(
+            self.get_queryset(),
+            pk=kwargs[self.lookup_field],
         )
+        serializer = self.get_serializer(wishlist)
+        return Response(serializer.data)
 
-        wishlist = self.get_object()
-
-        item, created = WishlistItem.objects.get_or_create(
-            wishlist=wishlist,
-            product=product,
-        )
-
-        if not created:
-            return Response(
-                {"detail": "این محصول قبلاً در لیست علاقه‌مندی شما وجود دارد."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+    def destroy(self, request, *args, **kwargs):
         return Response(
-            {"detail": "محصول با موفقیت به علاقه‌مندی‌ها اضافه شد."},
-            status=status.HTTP_201_CREATED,
+            {"detail": "Deleting the wishlist itself is not supported; remove individual items instead."},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
-
-    @action(
-        detail=False,
-        methods=["delete"],
-        url_path=r"remove/(?P<product_id>\d+)",
-    )
-    def remove(self, request, product_id):
-        wishlist = self.get_object()
-
-        item = get_object_or_404(
-            WishlistItem,
-            wishlist=wishlist,
-            product_id=product_id,
-        )
-
-        item.delete()
-
-        return Response(
-            status=status.HTTP_204_NO_CONTENT
-        )
-
-class WishlistViewSet(viewsets.ModelViewSet):
-    serializer_class = WishlistSerializer
-    permission_classes = [HasAnyRole]
-    http_method_names = ["get", "post", "delete"]
-
-    def get_queryset(self):
-        return Wishlist.objects.filter(
-            user=self.request.user
-        ).prefetch_related(
-            "items__product"
-        )
-
-    def get_object(self):
-        wishlist, _ = Wishlist.objects.get_or_create(
-            user=self.request.user
-        )
-        return wishlist
-
     def list(self, request, *args, **kwargs):
         wishlist = self.get_object()
         serializer = self.get_serializer(wishlist)
@@ -205,8 +153,13 @@ class WishlistViewSet(viewsets.ModelViewSet):
         product = get_object_or_404(
             Product,
             id=product_id,
-            is_active=True,
         )
+
+        if not product.is_active:
+            return Response(
+                {"product": ["This product is not available."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         wishlist = self.get_object()
 

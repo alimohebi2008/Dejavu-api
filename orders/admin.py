@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Cart, CartItem, Order, OrderItem
+from .models import Cart, CartItem, Order, OrderItem, Wishlist, WishlistItem
 
 
 class CartItemInline(admin.TabularInline):
@@ -131,6 +131,38 @@ class OrderItemAdmin(admin.ModelAdmin):
         "order__user__username",
         "product__title",
     )
+
+    @admin.display(description="شناسه")
+    def id(self, obj):
+        return obj.pk
+
+
+class WishlistItemInline(admin.TabularInline):
+    model = WishlistItem
+    extra = 0
+    fields = ("product", "created_at")
+    readonly_fields = ("created_at",)
+
+
+@admin.register(Wishlist)
+class WishlistAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "created_at", "updated_at")
+    search_fields = ("user__username", "user__phone_number")
+    list_filter = ("created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    inlines = (WishlistItemInline,)
+
+    @admin.display(description="شناسه")
+    def id(self, obj):
+        return obj.pk
+
+
+@admin.register(WishlistItem)
+class WishlistItemAdmin(admin.ModelAdmin):
+    list_display = ("id", "wishlist", "product", "created_at")
+    search_fields = ("wishlist__user__username", "product__title")
+    list_filter = ("created_at",)
+    readonly_fields = ("created_at",)
 
     @admin.display(description="شناسه")
     def id(self, obj):

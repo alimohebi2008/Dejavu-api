@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 load_dotenv()
 
@@ -24,13 +25,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-qd9cpf^myqvhje8u#2++iq@of$)5q0h4b*ei##@)x21x5-p6zr",
-)
+# Production deployments must provide a unique, strong secret key.
+SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True").lower() in ("1", "true", "yes")
+DEBUG = os.getenv("DEBUG", "False").lower() in ("1", "true", "yes")
+
+if not SECRET_KEY:
+    raise ImproperlyConfigured("Set SECRET_KEY in the environment.")
+if not DEBUG and (
+    len(SECRET_KEY) < 50
+    or SECRET_KEY.startswith(("django-insecure-", "replace-this-", "change-me"))
+):
+    raise ImproperlyConfigured(
+        "In production, SECRET_KEY must be a unique random value of at least 50 characters."
+    )
+
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+if not DEBUG and (
+    len(DB_PASSWORD) < 16
+    or DB_PASSWORD.lower() in {"admin", "password", "postgres"}
+    or DB_PASSWORD.startswith("replace-with-")
+):
+    raise ImproperlyConfigured(
+        "In production, set DB_PASSWORD to a strong, unique password of at least 16 characters."
+    )
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -38,9 +57,29 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+# Secure cookies and HTTPS redirects are enabled by default outside development.
+SECURE_SSL_REDIRECT = os.getenv(
+    "SECURE_SSL_REDIRECT", str(not DEBUG)
+).lower() in ("1", "true", "yes")
+SESSION_COOKIE_SECURE = os.getenv(
+    "SESSION_COOKIE_SECURE", str(not DEBUG)
+).lower() in ("1", "true", "yes")
+CSRF_COOKIE_SECURE = os.getenv(
+    "CSRF_COOKIE_SECURE", str(not DEBUG)
+).lower() in ("1", "true", "yes")
+# Enable HSTS only after HTTPS is confirmed for every host/subdomain.
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -63,6 +102,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -97,7 +137,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("DB_NAME", "dejavu_db"),
         "USER": os.getenv("DB_USER", "postgres"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "admin"),
+        "PASSWORD": DB_PASSWORD,
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5432"),
     }
@@ -144,11 +184,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
